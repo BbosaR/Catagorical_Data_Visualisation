@@ -1,0 +1,601 @@
+---
+title: "Regulated_Health_Ins"
+output: html_document
+---
+# Set A Working Directory
+
+```{r}
+getwd()
+```
+
+# Install packages
+```{r eval = FALSE}
+install.packages("labelled")
+install.packages("haven")
+install.packages("tidyverse")
+install.packages("RColorBrewer")
+install.packages("tidyr")
+install.packages("tidytext")
+
+```
+
+
+
+
+# Load the required libraries
+```{r}
+library(haven)
+library(labelled)
+library(ggplot2)
+library(dplyr)
+library(tidytext)
+library("RColorBrewer")
+library(tidyr)
+```
+
+# Import the spss file into R
+```{r}
+hlthrgl_spss <- read_sav("C:/Users/bbosa/OneDrive/Documents/Data_Visualisation/Categorical_Data_Visualisation/Data/AllFinalRegulated/HealthReg.sav")
+```
+
+
+# To explore the spss file
+```{r}
+look_for(hlthrgl_spss) # Looks for value and variable labels to exlore them
+```
+
+## Explore the Structure of the Data file
+```{r}
+str(hlthrgl_spss) # Detailed structure of the data
+```
+
+## Indentify the Variables in the Data file
+```{r}
+names(hlthrgl_spss)  # or `colnames(hlthrgl_spss)`
+```
+
+## To remove unnecessary variable names
+```{r}
+hlthrgl_spss <- hlthrgl_spss[,-c(1:3, 7:15, 19)]
+names(hlthrgl_spss)
+```
+
+
+# To rename variables and put variable labels
+```{r}
+names(hlthrgl_spss)[1:6]<- c("zn","LGA","city","typ","outpatient","area")
+names(hlthrgl_spss)[16] <- "OSHIA"
+
+var_label(hlthrgl_spss[,1:6]) <- c("Zone","Local Government",
+                                    "City","Type of Faciity","OutPatient", "Area")
+
+var_label(hlthrgl_spss[16]) <-"Are you aware of the Oyo State Health Insurance Agency?" 
+
+val_labels(hlthrgl_spss[,6]) <- c( rural = 1, urban = 2)
+
+val_labels(hlthrgl_spss[,4]) <- c( Referral_H. = 1, 
+                                   Public_PHC = 2, 
+                                   Public_SHC = 3,
+                                   Private_H. = 4,
+                                   Private_Phar. =5 )
+
+```
+
+
+# Rename variables
+```{r}
+names(hlthrgl_spss)[7:13] <- c("Cost of Accreditation",
+                               "Process of Licencing",
+                               "Licence Renewal",
+                               "Supervision Effectiveness",
+                               "Deployment of Medical Specialists",
+                               "Approval and Distribution\n Drugs and Vaccines",
+                               "Periodic Supervision of Activities")
+```
+
+
+
+# To see the class of the variables
+```{r}
+pillar::glimpse(hlthrgl_spss)
+```
+
+# To drop unused labels and coerce all variables to factors for anlysis purposes
+```{r}
+hlthrgl_spss <- hlthrgl_spss %>% unlabelled(drop_unused_labels = TRUE)
+pillar::glimpse(hlthrgl_spss)
+```
+
+
+# Explore the data through Visualisations
+## Bar chart
+```{r}
+
+ggplot(hlthrgl_spss, aes(x = LGA)) + geom_bar(aes(fill = area))+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+
+## Bar Chart 2
+```{r}
+
+ggplot(hlthrgl_spss, aes(y =LGA)) +
+geom_bar(aes(fill = area),
+position = "fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+
+
+```
+
+
+## Bar Chart 3
+```{r}
+
+df <- hlthrgl_spss %>%
+group_by(LGA, area) %>%
+summarise(counts =n())
+
+
+ggplot(df, aes(
+x = reorder_within(LGA, counts, area),
+y = counts, fill= area)) +
+geom_bar(stat = "identity") +
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+geom_text(aes(label=counts),
+vjust = -0.5, hjust = 0.5)+
+facet_grid(.~ area , scales = "free",
+labeller = label_value)+
+scale_x_reordered()+
+xlab("Local Government") +
+ylab("Number of Respondents")
+```
+
+## Bar chat 4
+```{r}
+ggplot(df, aes(
+  y = reorder_within(LGA, counts, area),
+  x = counts, fill= area)) +
+  geom_bar(stat = "identity") +
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  geom_text(aes(label=counts), 
+            vjust = 0.5, hjust = -0.5)+
+  facet_grid(area~ . , scales = "free",
+             labeller = label_value)+
+             scale_y_reordered()+
+ ylab("Local Government") +
+  xlab("Number of Respondents")+
+  labs(fill = "Area")
+```
+
+## Bar chart 5
+```{r}
+
+ggplot(hlthrgl_spss, aes(y =typ)) +
+geom_bar(aes(fill = outpatient),
+position = position_stack(reverse = TRUE))+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+## Bar Chat 6
+```{r}
+
+
+ggplot(hlthrgl_spss, aes(y =typ)) +
+geom_bar(aes(fill = outpatient),
+position = position_stack(reverse = TRUE))+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+## Bar Chart 7
+```{r}
+df1 <- hlthrgl_spss %>%
+group_by(typ, outpatient) %>%
+summarise(counts =n())%>% 
+  mutate(pct = counts/sum(counts),
+         lb = cumsum(pct))
+
+
+ggplot(df1, aes(
+y = reorder_within(df1$typ, df1$counts, df1$outpatient),
+x = counts, fill= outpatient)) +
+geom_bar(stat = "identity", position = "stack") +
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      legend.position="right",
+         legend.direction="vertical",
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"),
+      plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+geom_text(aes(label=df1$counts),
+vjust = -0.5, hjust = 0.5)+
+scale_y_reordered()+
+ labs(fill = "Responses",
+     title = "Do you offer Outpatient Services only?", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       y = "Type of Facility", x ="Number of Respondents" , 
+       caption =  "N=117 Regulated Institutions")
+```
+
+## Bar Chart 8
+```{r}
+ggplot(df1, aes(
+y = reorder_within(df1$typ, df1$counts, df1$outpatient),
+x = counts, fill= df1$outpatient)) +
+geom_bar(stat = "identity") +
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      legend.position="right",
+         legend.direction="vertical",
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"),
+      plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+geom_text(aes(label=df1$counts),
+vjust = -0.5, hjust = 0.5)+
+facet_grid(df1$outpatient ~. , scales = "free",
+labeller = label_value)+
+scale_y_reordered()+
+   labs(fill = "Responses",
+     title = "Do you offer Outpatient Services only?", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       y = "Type of Facility", x ="Number of Respondents" , 
+       caption =  "N=117 Regulated Institutions")
+```
+
+## Bar chart 9
+```{r}
+ggplot(data=df1, aes(x=df1$typ, y=df1$pct, fill=outpatient)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(df1$pct,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Do you offer Outpatient Services only?", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Type of Facility", y ="Proportion of Respondents" , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+## Mosaic plots
+```{r}
+#Using Base R
+
+
+mosaicplot(~zn + OSHIA, data = hlthrgl_spss,
+           col=brewer.pal(n=2, name = "Set2"),
+           las=2,
+           main="Are you aware of the existence of \nOyo State Health Insurance Agency?",
+           xlab="", 
+           ylab="Response",
+           cex.axis=1,)
+```
+
+
+### Mosaic plot 2
+```{r}
+mosaicplot(~LGA + OSHIA, data = hlthrgl_spss,
+           main = "Are you aware of the existence of Oyo State Health Insurance Agency?", 
+           sub = NULL, 
+           xlab = "", 
+           ylab = "Respose",
+           col=c("Skyblue","Seagreen1"), 
+           las=2, cex.axis = 1.5)
+```
+
+
+### Mosaic Plot 3
+```{r}
+mosaicplot(~typ + OSHIA, data = hlthrgl_spss,
+           main = "Are you aware of the existence of Oyo State Health Insurance Agency?", 
+           sub = NULL, 
+           xlab = "", 
+           ylab = "Respose",
+           col=c("Cyan","Pink"), 
+           las=2, cex.axis = 1.5)
+```
+
+
+## Bar chart 10
+```{r}
+
+
+hlthrgl_spsst <- hlthrgl_spss %>% pivot_longer(
+  cols = "Cost of Accreditation":"Periodic Supervision of Activities",
+  names_to = "effect",
+  values_to = "opinion")
+
+
+
+ggplot(hlthrgl_spsst, aes(y =effect)) +
+geom_bar(aes(fill = opinion),position="fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+
+```
+
+## Bar chart 11
+```{r}
+df3 <- hlthrgl_spsst %>% 
+group_by(effect,opinion)%>% 
+summarise(counts =n()) %>% 
+  mutate(pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+
+
+ggplot(data=df3, aes(x=df3$effect, y=df3$pct, fill=opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(df3$pct,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "To what extent are you affected by the nOyo state government’s\n Regulatory Activities in the last 2 years?", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Activities", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+## Bar chart 12
+```{r}
+fill <- c('#66c2a5','#fc8d62','#969696','#e78ac3','#a6d854')
+ggplot(data=df3, aes(x=df3$effect, y=df3$pct, fill=opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(df3$pct,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "To what extent are you affected by the  Oyo state government’s\n Regulatory Activities in the last 2 years?", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Activities", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+scale_fill_manual(values=fill)
+```
+
+
+## Bar chart 13
+```{r}
+df4 <- hlthrgl_spsst  %>% 
+ group_by(effect, opinion) %>%
+  mutate(counts =n(),
+         pct=(counts)/sum(counts),
+         label_ypos=cumsum(pct)) %>% 
+  ungroup()
+
+custom_color <- c('#66c2a5','#fc8d62','#969696','#e78ac3','#a6d854')
+ggplot(data=df4, aes(x=df4$effect, y=df4$pct, fill=opinion)) +
+  geom_bar(stat="identity", position="fill") + 
+  coord_flip()+
+  facet_grid(typ ~ .)+ 
+  theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+    guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "To what extent are you affected by the  Oyo state government’s Regulatory Activities in the last 2 years?", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Regulatory Activities", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+scale_fill_manual(values=custom_color)+
+  facet_grid(typ ~ .,scales='free_y')
+```
+
+## Bar chart 14
+```{r}
+  
+df5 <- hlthrgl_spsst  %>% 
+  group_by(effect, opinion) %>%
+  mutate(counts =n(),
+         pct=(counts)/sum(counts),
+         label_ypos=cumsum(pct)) %>% 
+  ungroup()
+
+custom_color <- c('#66c2a5','#fc8d62','#969696','#e78ac3','#a6d854')
+ggplot(data=df5, aes(x=df5$effect, y=df5$pct, fill=opinion)) +
+  geom_bar(stat="identity",
+           position = "fill") + 
+  coord_flip() +
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15),
+        panel.border=element_blank(), axis.line=element_line())+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "To what extent are you affected by the  Oyo state government’s Regulatory Activities in the last 2 years?", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Activities", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+scale_fill_manual(values=custom_color)+
+  facet_grid(typ ~ .,scales='free_y')+
+  ylim(0.00, 1)
+
+
+```
+
+
+```{r}
+names(hlthrgl_spsst)[10:14] <- c("Cost of Accreditation",
+                               "Process of Licencing and\n Licencing Renewal",
+                               "Supervision Effectiveness",
+                               "Deployment of Medical Specialists",
+                               "Approval and Distribution\n Drugs and Vaccines")
+
+names(hlthrgl_spsst)
+```
+
+
+## Bar chart 15
+```{r}
+
+hlthrgl_spsstt <- hlthrgl_spsst %>% pivot_longer(
+  cols = "Cost of Accreditation":"Approval and Distribution\n Drugs and Vaccines",
+  names_to = "services",
+  values_to = "rating")
+
+
+ggplot(hlthrgl_spsstt, aes(y =services)) +
+geom_bar(aes(fill = rating),position="fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+
+```
+
+## Bar chart 16
+```{r}
+df6 <- hlthrgl_spsstt %>% 
+group_by(services,rating)%>% 
+summarise(counts =n()) %>% 
+  mutate(proptn= (counts)/sum(counts),
+         cumm_proptn=cumsum(proptn))
+
+ggplot(data=df6, aes(x=df6$services, y=df6$proptn, fill=df6$rating)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(df6$proptn,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", 
+                                     size = 12, 
+                                     face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Compared to the past 2 years, Rate the availability of the following services;", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Services", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+## Bar chart 17
+```{r}
+color_fill <- c('#66c2a5','#fc8d62','#969696','#e78ac3','#a6d854')
+ggplot(data=df6, aes(x=df6$services, y=df6$proptn, fill=df6$rating)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(df6$proptn,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", 
+                                     size = 12, 
+                                     face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Compared to the past 2 years, Rate the availability of the following services;", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Services", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+scale_fill_manual(values=color_fill)
+```
+
+
+
+## Bar chart 18
+```{r}
+df7 <- hlthrgl_spsstt  %>% 
+ group_by(services, rating) %>%
+  mutate(counts =n(),
+         proptn=(counts)/sum(counts),
+         cumm_proptn=cumsum(proptn)) %>% 
+  ungroup()
+
+custom_color <- c('#66c2a5','#fc8d62','#969696','#e78ac3','#a6d854')
+ggplot(data=df7, aes(x=df7$services, y=df7$proptn, fill=df7$rating)) +
+  geom_bar(stat="identity", position="fill") + 
+  coord_flip()+
+  facet_grid(typ ~ .)+ 
+  theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+    guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Compared to the past 2 years, Rate the availability of the following services;", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Services", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+scale_fill_manual(values=custom_color)+
+  facet_grid(typ ~ .,scales='free_y')
+```
+
+
+## Bar chart 19
+```{r}
+  
+df8 <- hlthrgl_spsstt  %>% 
+  group_by(services, rating) %>%
+  mutate(counts =n(),
+          proptn=(counts)/sum(counts),
+         cumm_proptn=cumsum(proptn)) %>% 
+  ungroup()
+
+
+
+custom_color <- c('#66c2a5','#fc8d62','#969696','#e78ac3','#a6d854')
+ggplot(data=df8, aes(x=df8$services, y=df8$proptn, fill=df8$rating)) +
+  geom_bar(stat="identity",
+           position = "fill") + 
+  coord_flip() +
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15),
+        panel.border=element_blank(), axis.line=element_line())+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Compared to the past 2 years, Rate the availability of the following services;", 
+       subtitle = "Mid-Term Survey for Health Regulated Institutions", 
+       x = "Services", y =NULL , 
+       caption =  "N=117 Regulated Institutions")+
+   scale_fill_hue(l=80, c=20)+
+scale_fill_manual(values=custom_color)+
+  facet_grid(typ ~ .,scales='free_y')+
+  ylim(0.00, 1)
+
+```
+
+
