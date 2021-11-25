@@ -1,0 +1,22 @@
+---
+title: "Agriculture_Endusers"
+output: html_document
+---
+
+
+# Load the required libraries
+```{r}
+library(haven)
+library(labelled)
+library(ggplot2)
+library(dplyr)
+library(tidytext)
+library("RColorBrewer")
+library(tidyr)
+```
+
+
+# Import the spss file into R
+```{r}
+Agr_spss <- read_sav("C:/Users/bbosa/OneDrive/Documents/Data_Visualisation/Categorical_Data_Visualisation/Data/Final EndUser/AgricUser.sav")
+```
