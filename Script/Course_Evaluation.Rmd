@@ -1,0 +1,275 @@
+---
+title: "Course_Evaluation"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Get working directory
+```{r}
+getwd()
+```
+
+# Loard the required libraries
+```{r}
+library(haven)
+library(labelled)
+library(ggplot2)
+library(dplyr)
+library(tidytext)
+library("RColorBrewer")
+library(tidyr)
+```
+
+
+# Import data
+```{r}
+course_eval <- read.csv("~/Data_Visualisation/Categorical_Data_Visualisation/Data/Course_Evaluation/analysis1.csv", stringsAsFactors = TRUE, header = TRUE)
+
+course_eval1 <- read.csv("~/Data_Visualisation/Categorical_Data_Visualisation/Data/Course_Evaluation/analysis2.csv", stringsAsFactors = TRUE, header = TRUE)
+
+course_eval2 <- read.csv("~/Data_Visualisation/Categorical_Data_Visualisation/Data/Course_Evaluation/analysis3.csv", stringsAsFactors = TRUE, header = TRUE)
+
+course_eval3 <- read.csv("~/Data_Visualisation/Categorical_Data_Visualisation/Data/Course_Evaluation/analysis4.csv", stringsAsFactors = TRUE, header = TRUE)
+```
+
+
+# Check the dataset
+```{r}
+pillar::glimpse(course_eval)
+```
+
+# Transform from Pivot wide to pivot long
+```{r}
+course_evalw <- course_eval %>% pivot_longer(
+  cols = c(1:12),
+  names_to = "Learning_Objectives",
+  values_to = "opinion")
+```
+
+
+# Renaming variables
+```{r}
+course_evalw$Learning_Objectives[
+  course_evalw$Learning_Objectives == c("manipulate.data.in.R..filter.and.sort.data.sets..recode.and.compute.variables.","compute.statistical.indicators..mean..median..mode.etc..","determine.skewness.and.kurtosis","get.statistical.indicators.by.subgroups.of.the.population","build.frequency.tables","build.cross.tables","create.histograms.and.cumulative.frequency.chart","build.column.charts..mean.plot.charts.and.scatterplot.charts","build.boxplot.diagrams","check.the.normality.assumption.for.a.data.series","detect.the.outliers.in.a.data.series","perform.univariate.analyses..one.sample.t.test..binomial.test..chi.square.test.for.goodness.of.fit..")] <- c("Manipulate data in R\n(filter and sort data sets recode and compute variables", "Compute Statistical Indicators (mean,median,mode.etc.)","Determine Skewness and Kurtosis","Get Statistical Indicators by Subgroups of the Population","Build Frequency Tables","Build Cross Tables","Create Histograms and Cumulative Frequency Chart","Build Column , Meanplot and Scatterplot Charts","Build Boxplot Diagrams","Check the Normality Assumption for a Data Series","Detect the Outliers in a Data Series","Perform Univariate Analyses\n(one sample t test ,binomial test, Chi Square test for goodness of fit")
+
+```
+
+
+```{r}
+look_for(dfce)
+pillar::glimpse(dfce)
+```
+
+
+ 
+```{r}
+dfce <- course_evalw %>%
+group_by(Learning_Objectives, opinion) %>%
+summarise(counts =n())%>% 
+  mutate(pct = counts/sum(counts),
+         lb = cumsum(pct))
+names(dfce)
+
+ggplot(dfce, aes(y = Learning_Objectives)) +
+geom_bar(aes(fill = opinion), position ="fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+```
+
+
+```{r}
+
+ggplot(data=dfce, aes(x = Learning_Objectives, y = pct, fill = opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(dfce$pct,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = 
+          element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "The following learning objectives were covered adequately", 
+       subtitle = "General Course Content and Delivery", 
+       x = "Learning Objectives", y =NULL , 
+       caption =  "N= 6 Approved Participants")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+# Transform from Pivot wide to pivot long
+```{r}
+course_evalw1 <- course_eval1 %>% pivot_longer(
+  cols = c(1:5),
+  names_to = "Skills",
+  values_to = "Opinion")
+```
+
+
+# Renaming variables
+```{r}
+course_evalw1$Skills[
+  course_evalw1$Skills == c("Instructor.s..was.an.effective.lecturer.demonstrator","Presentations.were.clear.and.organized","Instructor.s..stimulated.student.interest","Instructor.s..effectively.used.time.during.class.periods","Instructor.s..was.available.and.helpful")] <- c("Instructor(s) was an Effective Lecturer Demonstrator", "Presentations Were Clear and Organised","Instructor(s) Stimulated Student Interest","Instructor(s) Effectively Used Time During Class Periods","Instructor(s) Was Available and Helpful")
+```
+
+
+```{r}
+dfce1 <- course_evalw1 %>%
+group_by(Skills, Opinion) %>%
+summarise(counts =n())%>% 
+  mutate(pct = counts/sum(counts),
+         lb = cumsum(pct))
+names(dfce1)
+
+ggplot(dfce1, aes(y = Skills)) +
+geom_bar(aes(fill = Opinion), position ="fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+```
+
+
+```{r}
+
+ggplot(data=dfce1, aes(x = Skills, y = pct, fill = Opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(dfce1$pct,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = 
+          element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Skills and Responsiveness of the Instructor(s)", 
+       subtitle = "General Course Content and Delivery", 
+       x = "Skills", y =NULL , 
+       caption =  "N= 6 Approved Participants")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+
+
+
+# Transform from Pivot wide to pivot long
+```{r}
+course_evalw2 <- course_eval2 %>% pivot_longer(
+  cols = c(1:4),
+  names_to = "Content",
+  values_to = "Opinion")
+```
+
+
+# Renaming variables
+```{r}
+course_evalw2$Content[
+  course_evalw2$Content == c("Learning.objectives.were.clear","Course.content.was.organized.and.well.planned","Course.workload.was.appropriate","Course.organized.to.allow.all.students.to.participate.fully")] <- c("Learning objectives were clear", "Course content was organized and well planned","Course workload was appropriate","Course organized to allow all students to participate fully")
+
+```
+
+
+```{r}
+dfce2 <- course_evalw2 %>%
+group_by(Content, Opinion) %>%
+summarise(counts =n())%>% 
+  mutate(pct = counts/sum(counts),
+         lb = cumsum(pct))
+names(dfce2)
+
+ggplot(dfce2, aes(y = Content)) +
+geom_bar(aes(fill = Opinion), position ="fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+```
+
+
+```{r}
+
+ggplot(data=dfce2, aes(x = Content, y = pct, fill = Opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(dfce2$pct,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = 
+          element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Rate the Relevance and Quality of Course Content", 
+       subtitle = "General Course Content and Delivery", 
+       x = "Course Content", y =NULL , 
+       caption =  "N= 6 Approved Participants")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+# Transform from Pivot wide to pivot long
+```{r}
+course_evalw3 <- course_eval3 %>% pivot_longer(
+  cols = c(1:7),
+  names_to = "Sessions",
+  values_to = "Opinion")
+```
+
+
+# Renaming variables
+```{r}
+course_evalw3$Sessions[
+  course_evalw3$Sessions == c("Introduction.to.R.and.Rstudio","Data.Manipulation..filtering..sorting..recoding.and.computing.new.variables.","Descriptive.Statistics","Creating.Frequency.Tables.and.Cross.Tables","Building Charts","Checking.Assumptions.and.Detecting.Outliers","Performing.Univariate.Analyses..t.test..Binomial.test.and.Chi.square.test.")] <- c("Introduction to R and Rstudio","Data Manipulation\n(filtering, sorting recoding and computing new variables)","Descriptive Statistics","Creating Frequency Tables and Cross Tables","Building Charts","Checking Assumptions and Detecting Outliers","Performing Univariate Analyses\n(t-test,Binomial test and Chi-square test")
+```
+
+
+```{r}
+dfce3 <- course_evalw3 %>%
+group_by(Sessions, Opinion) %>%
+summarise(counts =n())%>% 
+  mutate(pct = counts/sum(counts),
+         lb = cumsum(pct))
+names(dfce3)
+
+ggplot(dfce3, aes(y = Sessions)) +
+geom_bar(aes(fill = Opinion), position ="fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+```
+
+
+```{r}
+
+ggplot(data=dfce3, aes(x = Sessions, y = pct, fill = Opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(dfce3$pct,accuracy = 0.1L),
+            size = 4, 
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = 
+          element_text(color = "gray20", size = 12, face = "italic"), 
+        plot.caption = element_text(size = 10), 
+        text = element_text(family = "Georgia", size = 15))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Which sessions did you find most relevant?", 
+       subtitle = "General Course Content and Delivery", 
+       x = "Sessions", y =NULL , 
+       caption =  "N= 6 Approved Participants")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+
+
