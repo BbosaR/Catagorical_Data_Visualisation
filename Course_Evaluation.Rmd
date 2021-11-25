@@ -1,0 +1,58 @@
+---
+title: "Course_Evaluation"
+output: html_document
+---
+
+# Get working directory
+```{r}
+getwd()
+```
+
+# Loard the required libraries
+```{r}
+library(haven)
+library(labelled)
+library(ggplot2)
+library(dplyr)
+library(tidytext)
+library("RColorBrewer")
+library(tidyr)
+```
+
+
+# Import data
+```{r}
+course_eval <- read.csv("~/Data_Visualisation/Categorical_Data_Visualisation/Data/Course_Evaluation/analysis1.csv", stringsAsFactors = TRUE, header = TRUE)
+```
+
+# Check the dataset
+```{r}
+pillar::glimpse(course_eval)
+```
+
+# Transform from Pivot wide to pivot long
+```{r}
+course_evalw <- course_eval %>% pivot_longer(
+  cols = c(1:12),
+  names_to = "Learning_Objectives",
+  values_to = "opinion")
+```
+
+
+# 
+```{r}
+ggplot(course_evalw, aes(y =Learning_Objectives)) +
+geom_bar(aes(fill = opinion),position="fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+```
+
+
+```{r}
+df1 <- course_evalw %>%
+group_by(typ, outpatient) %>%
+summarise(counts =n())%>% 
+  mutate(pct = counts/sum(counts),
+         lb = cumsum(pct)
+```
+
