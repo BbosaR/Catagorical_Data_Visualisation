@@ -316,7 +316,7 @@ hlthrgl_spsst <- hlthrgl_spss %>% pivot_longer(
 
 
 
-ggplot(hlthrgl_spsst, aes(y =effect)) +
+ggplot(hlthrgl_spsst, aes(y = effect)) +
 geom_bar(aes(fill = opinion),position="fill")+
 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
   scale_x_continuous(labels=scales::percent)
