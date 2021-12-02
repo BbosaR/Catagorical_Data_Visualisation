@@ -4,6 +4,21 @@ output: html_document
 ---
 
 
+
+
+```{r}
+# Install
+install.packages("tm")  # for text mining
+install.packages("SnowballC") # for text stemming
+install.packages("wordcloud") # word-cloud generator 
+install.packages("RColorBrewer") # color palettes
+install.packages("ggmosaic")
+
+```
+
+
+
+
 # Load the required libraries
 ```{r}
 library(haven)
@@ -13,6 +28,10 @@ library(dplyr)
 library(tidytext)
 library("RColorBrewer")
 library(tidyr)
+library("tm")
+library("SnowballC")
+library("wordcloud")
+library(tidyverse)
 ```
 
 
@@ -20,3 +39,576 @@ library(tidyr)
 ```{r}
 Agr_spss <- read_sav("C:/Users/bbosa/OneDrive/Documents/Data_Visualisation/Categorical_Data_Visualisation/Data/Final EndUser/AgricUser.sav")
 ```
+
+# To explore the spss file
+```{r}
+look_for(Agr_spss)
+```
+
+```{r}
+glimpse(Agr_spss)
+```
+
+
+
+# Explore the dataset
+```{r}
+
+names(Agr_spss)
+```
+
+
+
+```{r}
+# Rename variables
+
+names(Agr_spss)[17:21] <- c(
+  "N350 million counterpart fund–RAAMP",
+  "Establishment of OYSADA",
+  "Construction of the OYSADA Headquarters, Saki",
+  "N106,850,000 Agriculture Credit Facilities\nto 658 peasant farmers",
+  "Accelerated Agricultural Development Scheme")
+
+names(Agr_spss)[22:31] <- c("Fertilizer","Seeds/stems","Insecticide","Pesticide","Farm Extension services","Mechanized Equipment","Access to markets","Agric Credit","Road and rail infrastructure","Land clearing")
+
+
+names(Agr_spss)[34:43] <- c(
+  "Fertilizer_","Seeds/stems_","Insecticide_","Pesticide_","Farm Extension services_","Mechanized Equipment_","Access to markets_","Agric Credit_","Road and rail infrastructure_","Land clearing_")
+```
+
+
+# Indentify the Variables in the Data file
+```{r}
+names(Agr_spss)
+```
+
+# Remove the unnecessary variables
+```{r}
+Agr_spss <- Agr_spss[,-c(1:3, 6:11)]
+```
+
+
+# To drop unused labels and coerce all variables to factors for anlysis purposes
+```{r}
+Agr_spss <- Agr_spss %>% unlabelled(drop_unused_labels = TRUE)
+pillar::glimpse(Agr_spss)
+```
+
+# Explore the data through Visualisations
+## Bar chart
+```{r}
+
+ggplot(Agr_spss, aes(x = LGA1)) + geom_bar(aes(fill = STATUS))+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+# Explore the data through Visualisations
+## Bar chart
+```{r}
+
+ggplot(Agr_spss, aes(x = Zone)) + geom_bar(aes(fill = AGE_GROUP))+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+
+# Explore the data through Visualisations
+## Bar chart
+```{r}
+
+ggplot(Agr_spss, aes(x = AGE_GROUP)) + geom_bar(aes(fill = SEX))+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+## Bar Chart 2
+```{r}
+
+ggplot(Agr_spss, aes(y =LGA1)) +
+geom_bar(aes(fill = STATUS),
+position = "fill")+
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  scale_x_continuous(labels=scales::percent)
+```
+
+
+```{r}
+
+df <- Agr_spss %>% 
+group_by(STATUS,AGE_GROUP,SEX) %>%
+summarise(counts =n())
+
+
+ggplot(df, aes(
+  y = reorder_within(STATUS, counts, SEX),
+  x = counts, fill= SEX)) +
+  geom_bar(stat = "identity") +
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  geom_text(aes(label=counts), 
+            vjust = 0.5, hjust = 0.4)+
+  facet_grid(SEX ~ AGE_GROUP , scales = "free",
+             labeller = label_value)+
+             scale_y_reordered()+
+ ylab("STATUS") +
+  xlab("Number of Respondents")+
+  labs(fill = "GENDER")
+```
+
+
+
+## Bar chart 9
+```{r}
+
+names(Agr_spss)
+
+Agr_spsst <- Agr_spss %>% pivot_longer(
+  cols = "N350 million counterpart fund–RAAMP":"Accelerated Agricultural Development Scheme",
+  names_to = "interventions",
+  values_to = "opinion") %>% 
+   filter(opinion != "I Don't know")
+
+Agr_spsst$opinion <- droplevels(Agr_spsst$opinion)
+
+
+Agr_spsstt <- Agr_spsst %>% 
+group_by(interventions,opinion)%>% 
+summarise(counts =n()) %>% 
+  mutate(pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+ggplot(Agr_spsstt, aes(x =  Agr_spsstt$interventions,
+                       y = Agr_spsstt$pct, fill = opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(Agr_spsstt$pct,accuracy = 0.1L),
+            size = 6, 
+            fontface = "bold",
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "How effective are these interventions in the\nAgriculture sector by the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Intervention", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+
+
+```{r}
+
+Agr_spssh <- Agr_spsst %>% 
+  filter(interventions %in% c( "N106,850,000 Agriculture Credit Facilities\nto 658 peasant farmers")) %>% 
+  group_by(interventions,opinion)%>% 
+  mutate(counts =n(),
+    pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+
+levels(Agr_spssh$opinion)
+
+ggplot(Agr_spssh, aes(x =  Agr_spssh$interventions,
+                       y = Agr_spssh$pct, fill = opinion)) +
+  geom_bar(stat="identity", position ="fill") + 
+  coord_flip()+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"),
+        strip.text.y = element_text(angle = 0))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "How effective are these interventions in the\nAgriculture sector by the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+ scale_fill_brewer(palette="Set2")+
+    facet_grid(Zone ~ .,scales = "free", space = "free") +
+  geom_hline(yintercept = 0.50, linetype="dashed", 
+                color = "#e7298a", size=1.5)
+```
+
+
+```{r}
+Agr_spssw <- Agr_spsst %>% 
+  filter(interventions %in% c( 
+    "Accelerated Agricultural Development Scheme",                      
+    "N350 million counterpart fund–RAAMP",
+    "Establishment of OYSADA")) %>% 
+  group_by(interventions,opinion)%>% 
+  mutate(counts =n(),
+    pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+
+levels(Agr_spssh$opinion)
+
+ggplot(Agr_spssw, aes(x =  Agr_spssw$interventions,
+                       y = Agr_spssw$pct, fill = opinion)) +
+  geom_bar(stat="identity", position ="fill") + 
+  coord_flip()+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"),
+        strip.text.y = element_text(angle = 0))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "How effective are these interventions in the\nAgriculture sector by the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+ scale_fill_brewer(palette="Set2")+
+    facet_grid(Zone ~ .,scales = "free", space = "free") +
+  geom_hline(yintercept = 0.50, linetype="dashed", 
+                color = "#e7298a", size=1.5)
+```
+
+
+```{r}
+names(Agr_spss)
+
+Agr_spssa <- Agr_spss %>% pivot_longer(
+  cols = "Fertilizer":"Land clearing",
+  names_to = "Inputs",
+  values_to = "opinion") %>% 
+   filter(opinion != "Don't Know")
+
+levels(Agr_spssa$opinion)
+
+Agr_spssa$opinion <- droplevels(Agr_spssa$opinion)
+
+levels(Agr_spssa$opinion)
+
+Agr_spssat <- Agr_spssa %>% 
+group_by(Inputs,opinion)%>% 
+summarise(counts =n()) %>% 
+  mutate(pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+ggplot(Agr_spssat, aes(x =  Agr_spssat$Inputs,
+                       y = Agr_spssat$pct, fill = opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(Agr_spssat$pct,accuracy = 0.1L),
+            size = 6, 
+            fontface = "bold",
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Which of the following agricultural inputs/services\n are accessible to you under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Inputs/Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+
+```{r}
+Agr_spssa$Zone
+
+Agr_spsswf <- Agr_spssa %>% 
+  filter(Inputs %in% 
+           c( "Fertilizer",
+              "Seeds/stems",
+              "Pesticide",
+              "Farm Extension services",
+              "Mechanized Equipment", 
+              "Agric Credit",
+              "Road and rail infrastructure" ,
+              "Land clearing")) %>% 
+  group_by(Inputs,opinion) %>% 
+  mutate(counts =n(),
+    pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct)) %>% 
+  filter(!Zone %in% 
+           c("Oke Ogun 1",
+             "Ibadan Main City",
+             "Oke Ogun 2",
+             "Oyo"))
+
+
+ggplot(Agr_spsswf, aes(x =  Agr_spsswf$Inputs,
+                       y = Agr_spsswf$pct, fill = opinion)) +
+  geom_bar(stat="identity", position ="fill") + 
+  coord_flip()+
+  theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"),
+        strip.text.y = element_text(angle = 0))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Which of the following agricultural inputs/services\n are accessible to you under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Inputs/Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")+
+    facet_grid(Zone ~ .,scales = "free", space = "free") +
+  geom_hline(yintercept = 0.50, linetype="dashed", 
+                color = "#e7298a", size=1.5)
+```
+
+
+```{r}
+Agr_spssa$Inputs
+
+Agr_spsswfo <- Agr_spssa %>% 
+  filter(Inputs %in% c( "Access to markets")) %>% 
+  group_by(Inputs,opinion) %>% 
+  mutate(counts =n(),
+    pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+ggplot(Agr_spsswfo, aes(x =  Agr_spsswfo$Inputs,
+                       y = Agr_spsswfo$pct, fill = opinion)) +
+  geom_bar(stat="identity", position ="fill") + 
+  coord_flip()+
+  theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"),
+        strip.text.y = element_text(angle = 0))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Which of the following agricultural inputs/services\n are accessible to you under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Inputs/Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")+
+    facet_grid(Zone ~ .,scales = "free", space = "free") +
+  geom_hline(yintercept = 0.50, linetype="dashed", 
+                color = "#e7298a", size=1.5)
+```
+
+
+```{r}
+#Using Base R
+Agr_spssa <- Agr_spssa %>% 
+  filter(opinion != "Don't Know")
+
+ Agr_spssa$opinion <- droplevels(Agr_spssa$opinion)
+
+
+mosaicplot( ~ Inputs + opinion  , data = Agr_spssa,
+           col=brewer.pal(n=2, name = "Set2"),
+           las=2,
+           main="Are you aware of the existence of \nOyo State Health Insurance Agency?",
+           xlab="", 
+           ylab="Response",
+           cex.axis=1,)
+```
+
+
+
+
+```{r}
+
+library(ggmosaic)
+ ggplot(data = Agr_spssa) +
+  geom_mosaic(aes(x = product(opinion,Inputs), fill=opinion),
+               divider=mosaic("v")) +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  labs(title='f(rude_to_recline)') +
+    theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold")) +
+   labs(title = "Which of the following agricultural inputs/services\n are accessible to you under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Proportion of Respondents", y ="Inputs/Services" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+
+
+```{r}
+
+library(ggmosaic)
+ ggplot(data = Agr_spssa) +
+  geom_mosaic(aes(x = product(opinion,Inputs), fill=opinion),
+               divider=mosaic("v")) +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  labs(title='f(rude_to_recline)') +
+    theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold")) +
+   labs(title = "Which of the following agricultural inputs/services\n are accessible to you under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Proportion of Respondents", y ="Inputs/Services" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_brewer(palette="Set2")
+```
+
+
+```{r}
+names(Agr_spss)
+
+Agr_spsso <- Agr_spss %>% pivot_longer(
+  cols = c(25:34),
+  names_to = "Services",
+  values_to = "rating")
+
+
+
+Agr_spssco <- Agr_spsso %>% 
+  filter(rating != "I don't know") %>% 
+group_by(Services,rating)%>% 
+summarise(counts =n()) %>% 
+  mutate(pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+levels(Agr_spssco$rating)
+
+Agr_spssco$rating <- droplevels(Agr_spssco$rating)
+
+levels(Agr_spssco$rating)
+
+Agr_spssco$rating <- fct_relevel(Agr_spssco$rating, c("Worse", "Unchanged", "Better"))
+
+levels(Agr_spssco$rating)
+
+custom_color <- c('#fc8d62','#969696','#66c2a5')
+ggplot(Agr_spssco, aes(x =  Agr_spssco$Services,
+                       y = Agr_spssco$pct, fill = rating)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(Agr_spssco$pct,accuracy = 0.1L),
+            size = 6, 
+            fontface = "bold",
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Compared to the last administration, rate the availability\n of farm inputs/services under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_manual(values=custom_color)
+```
+
+
+
+```{r}
+Agr_spsso <- Agr_spss %>% pivot_longer(
+  cols = c(25:34),
+  names_to = "Services",
+  values_to = "rating") %>% 
+  filter(rating !="I don't know")
+
+Agr_spsso$rating <- droplevels(Agr_spsso$rating)
+
+levels(Agr_spsso$rating)
+
+Agr_spsscot <- Agr_spsso %>% 
+  filter(Services %in% c("Mechanized Equipment",
+                         "Farm Extension services_",
+                         "Agric Credit_",
+                         "Pesticide_",
+                         "Land clearing_")) %>% 
+group_by(Services,rating)%>% 
+  mutate(counts =n(),
+    pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+Agr_spsscot$rating <- fct_relevel(Agr_spsscot$rating, c("Worse", "Unchanged", "Better"))
+
+levels(Agr_spsscot$rating)
+
+custom_color <- c('#fc8d62','#969696','#66c2a5')
+ggplot(Agr_spsscot, aes(x =  Agr_spsscot$Services,
+                       y = Agr_spsscot$pct, fill = rating)) +
+  geom_bar(stat="identity", position ="fill") + 
+  coord_flip()+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"),
+        strip.text.y = element_text(angle = 0))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Compared to the last administration, rate the availability\n of farm inputs/services under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_manual(values=custom_color)+
+    facet_grid(Zone ~ .,scales = "free", space = "free") +
+  geom_hline(yintercept = 0.50, linetype="dashed", 
+                color = "#e7298a", size=1.5)
+```
+
+
+
+```{r}
+Agr_spssg <- Agr_spsso %>% 
+  filter(Services %in% "Access to markets_") %>% 
+group_by(Services,rating)%>% 
+  mutate(counts =n(),
+    pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct))
+
+Agr_spssg$rating <- fct_relevel(Agr_spssg$rating, c("Worse", "Unchanged", "Better"))
+
+levels(Agr_spssg$rating)
+
+custom_color <- c('#fc8d62','#969696','#66c2a5')
+ggplot(Agr_spssg, aes(x =  Agr_spssg$Services,
+                       y = Agr_spssg$pct, fill = rating)) +
+  geom_bar(stat="identity", position ="fill") + 
+  coord_flip()+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"),
+        strip.text.y = element_text(angle = 0))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "Compared to the last administration, rate the availability\n of farm inputs/services under the current administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Services", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_manual(values=custom_color)+
+    facet_grid(Zone ~ .,scales = "free", space = "free") +
+  geom_hline(yintercept = 0.50, linetype="dashed", 
+                color = "#e7298a", size=1.5)
+```
+
+
