@@ -13,6 +13,7 @@ install.packages("SnowballC") # for text stemming
 install.packages("wordcloud") # word-cloud generator 
 install.packages("RColorBrewer") # color palettes
 install.packages("ggmosaic")
+install.packages("wordcloud2")
 
 ```
 
@@ -32,12 +33,13 @@ library("tm")
 library("SnowballC")
 library("wordcloud")
 library(tidyverse)
+library(wordcloud2)
 ```
 
 
 # Import the spss file into R
 ```{r}
-Agr_spss <- read_sav("C:/Users/bbosa/OneDrive/Documents/Data_Visualisation/Categorical_Data_Visualisation/Data/Final EndUser/AgricUser.sav")
+Agr_spss <- read_sav("C:/Users/bbosa/OneDrive/Documents/Data_Visualisation/Categorical_Data_Visualisation/Data/Final_EndUser/AgricUser.sav")
 ```
 
 # To explore the spss file
@@ -62,18 +64,82 @@ names(Agr_spss)
 ```{r}
 # Rename variables
 
-names(Agr_spss)[17:21] <- c(
-  "N350 million counterpart fund–RAAMP",
-  "Establishment of OYSADA",
-  "Construction of the OYSADA Headquarters, Saki",
-  "N106,850,000 Agriculture Credit Facilities\nto 658 peasant farmers",
-  "Accelerated Agricultural Development Scheme")
+names(Agr_spss)[17:21] <- 
+  c("N350 million counterpart fund–RAAMP",
+    "Establishment of OYSADA",
+    "Construction of the OYSADA Headquarters, Saki",
+    "N106,850,000 Agriculture Credit Facilities\nto 658 peasant farmers",
+    "Accelerated Agricultural Development Scheme")
 
-names(Agr_spss)[22:31] <- c("Fertilizer","Seeds/stems","Insecticide","Pesticide","Farm Extension services","Mechanized Equipment","Access to markets","Agric Credit","Road and rail infrastructure","Land clearing")
+names(Agr_spss)[22:31] <- 
+  c("Fertilizer",
+    "Seeds/stems",
+    "Insecticide",
+    "Pesticide",
+    "Farm Extension services",
+    "Mechanized Equipment",
+    "Access to markets",
+    "Agric Credit",
+    "Road and rail infrastructure",
+    "Land clearing")
 
 
-names(Agr_spss)[34:43] <- c(
-  "Fertilizer_","Seeds/stems_","Insecticide_","Pesticide_","Farm Extension services_","Mechanized Equipment_","Access to markets_","Agric Credit_","Road and rail infrastructure_","Land clearing_")
+names(Agr_spss)[34:43] <- 
+  c("Fertilizer_",
+    "Seeds/stems_",
+    "Insecticide_",
+    "Pesticide_",
+    "Farm Extension services_",
+    "Mechanized Equipment_",
+    "Access to markets_",
+    "Agric Credit_",
+    "Road and rail infrastructure_",
+    "Land clearing_")
+
+
+names(Agr_spss)[44:55] <- 
+  c("Access to land",
+    "Access to Credit",
+    "Support for farms, abattoirs and veterinary clinics",
+    "finding reliable hired farm labor",
+    "Amenities and infrastructure in rural areas",
+    "fluctuations in the prices of agricultural products",
+    "finding good markets for products and services",
+    "Farm produce processing",
+    "Farm produce packaging",
+    "Farm produce storage",
+    "Produce Transportation/ Distribution",
+    "Educating young people about agri-business & careers")
+
+names(Agr_spss)[56:67] <- 
+  c("Access to land_",
+    "Access to Credit_",
+    "Support for farms, abattoirs and veterinary clinics_",
+    "finding reliable hired farm labor_",
+    "Amenities and infrastructure in rural areas_",
+    "fluctuations in the prices of agricultural products_",
+    "finding good markets for products and services_",
+    "Farm produce processing_",
+    "Farm produce packaging_",
+    "Farm produce storage_",
+    "Produce Transportation/Distribution_",
+    "Educating young people about agri-business & careers_")
+
+names(Agr_spss)[68:79] <- 
+  c("_Access to land",
+    "_Access to Credit",
+    "_Support for farms, abattoirs and veterinary clinics",
+    "_finding reliable hired farm labor",
+    "_Amenities and infrastructure in rural areas",
+    "_fluctuations in the prices of agricultural products",
+    "_Providing access to markets for agro-products",
+    "_Farm produce processing",
+    "_Farm produce packaging",
+    "_Farm produce storage",
+    "_Transport infrastructure",
+    "_Educating young people about agri-business & careers")
+
+
 ```
 
 
@@ -535,15 +601,18 @@ Agr_spsso$rating <- droplevels(Agr_spsso$rating)
 levels(Agr_spsso$rating)
 
 Agr_spsscot <- Agr_spsso %>% 
+group_by(Services,rating)%>% 
+  mutate(counts =n(),
+    pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct)) %>% 
   filter(Services %in% c("Mechanized Equipment",
                          "Farm Extension services_",
                          "Agric Credit_",
                          "Pesticide_",
-                         "Land clearing_")) %>% 
-group_by(Services,rating)%>% 
-  mutate(counts =n(),
-    pct = (counts)/sum(counts),
-         label_ypos=cumsum(pct))
+                         "Land clearing_"),
+         Zone %in% c("Ibadan Less City",
+                     "Ogbomoso",
+                     "Ibarapa")) 
 
 Agr_spsscot$rating <- fct_relevel(Agr_spsscot$rating, c("Worse", "Unchanged", "Better"))
 
@@ -577,11 +646,11 @@ ggplot(Agr_spsscot, aes(x =  Agr_spsscot$Services,
 
 ```{r}
 Agr_spssg <- Agr_spsso %>% 
-  filter(Services %in% "Access to markets_") %>% 
 group_by(Services,rating)%>% 
   mutate(counts =n(),
     pct = (counts)/sum(counts),
-         label_ypos=cumsum(pct))
+         label_ypos=cumsum(pct)) %>%
+  filter(Services %in% "Access to markets_") 
 
 Agr_spssg$rating <- fct_relevel(Agr_spssg$rating, c("Worse", "Unchanged", "Better"))
 
@@ -610,5 +679,225 @@ ggplot(Agr_spssg, aes(x =  Agr_spssg$Services,
   geom_hline(yintercept = 0.50, linetype="dashed", 
                 color = "#e7298a", size=1.5)
 ```
+
+
+
+```{r}
+names(Agr_spss)
+
+Agr_spssto <- Agr_spss %>% pivot_longer(
+  cols = c(35:46),
+  names_to = "Activities",
+  values_to = "opinion")
+
+Agr_spsstoc <- Agr_spssto %>% 
+  group_by(Activities,opinion)%>% 
+  summarise(counts =n()) %>% 
+  mutate(pct = (counts)/sum(counts),
+    label_ypos=cumsum(pct))
+
+
+custom_color <- c('#fc8d62','#66c2a5','#969696','#e78ac3')
+
+ggplot(Agr_spsstoc, aes(x =  Agr_spssctoc$Activities,
+                       y = Agr_spsstoc$pct, fill = opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(Agr_spsstoc$pct,accuracy = 0.1L),
+            size = 4, 
+            fontface = "bold",
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "To what extent do the following pose as challenges\n to you and your activities?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Activities", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_manual(values=custom_color)
+```
+
+
+
+```{r}
+Agr_spssnot <- Agr_spssto %>% 
+  group_by(Activities,opinion)%>% 
+  mutate(counts =n(),
+         pct = (counts)/sum(counts),
+         label_ypos=cumsum(pct)) %>% 
+  filter(!Zone %in% 
+           c("Oke Ogun 1",
+             "Ibadan Less City",
+             "Ibadan Main City"),
+         Activities %in% 
+           c("Support for farms, abattoirs and veterinary clinics",
+             "Amenities and infrastructure in rural areas",
+             "fluctuations in the prices of agricultural products",                         "Produce Transportation/ Distribution",
+             "Access to Credit"))
+
+custom_color <- c('#fc8d62','#66c2a5','#969696','#e78ac3')
+
+ggplot(Agr_spssnot, aes(x =  Agr_spssnot$Activities,
+                       y = Agr_spssnot$pct, fill = opinion)) +
+  geom_bar(stat="identity", position ="fill") + 
+  coord_flip()+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"),
+        strip.text.y = element_text(angle = 0))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "To what extent do the following pose as challenges\n to you and your activities?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Activities", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_manual(values=custom_color)+
+    facet_grid(Zone ~ .,scales = "free", space = "free") +
+  geom_hline(yintercept = 0.50, linetype="dashed", 
+                color = "#e7298a", size=1.5)
+```
+
+
+
+```{r}
+names(Agr_spss)
+
+Agr_comp <- Agr_spss %>% pivot_longer(
+  cols = c(47:58),
+  names_to = "Challenges",
+  values_to = "opinion") %>% 
+  filter(opinion != "I don't know") 
+
+levels(Agr_1$opinion)
+
+Agr_1$opinion <- droplevels(Agr_1$opinion)
+
+levels(Agr_1$opinion)
+
+Agr_1 <- Agr_comp %>% 
+  group_by(Challenges,opinion)%>% 
+  summarise(counts =n()) %>% 
+  mutate(pct = (counts)/sum(counts),
+    label_ypos=cumsum(pct))
+
+
+custom_color <- c('#66c2a5','#969696')
+
+ggplot(Agr_1, aes(x =  Agr_1$Challenges,
+                       y = Agr_1$pct, fill = opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(Agr_1$pct,accuracy = 0.1L),
+            size = 4, 
+            fontface = "bold",
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "To what extent are these challenges being\ncurrently addressed by this administration?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Challenges", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_manual(values=custom_color)
+```
+
+
+```{r}
+names(Agr_spss)
+
+Agr_reco <- Agr_spss %>% pivot_longer(
+  cols = c(59:70),
+  names_to = "Recommendations",
+  values_to = "opinion") %>% 
+  filter(opinion != "Don't know")
+
+levels(Agr_reco$opinion)
+
+Agr_reco$opinion <- droplevels(Agr_reco$opinion)
+
+levels(Agr_reco$opinion)
+
+Agr_2 <- Agr_reco %>% 
+  group_by(Recommendations,opinion)%>% 
+  summarise(counts =n()) %>% 
+  mutate(pct = (counts)/sum(counts),
+    label_ypos=cumsum(pct))
+
+
+custom_color <- c('#fc8d62','#66c2a5','#969696')
+
+ggplot(Agr_2, aes(x =  Agr_2$Recommendations,
+                       y = Agr_2$pct, fill = opinion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()+
+  geom_text(label=scales::percent(Agr_2$pct,accuracy = 0.1L),
+            size = 4, 
+            fontface = "bold",
+            position = position_stack(vjust = 0.5))+
+   theme(legend.position="top",
+         legend.direction="horizontal",
+         legend.title = element_blank(),
+        plot.subtitle = element_text(color = "gray20", size = 14, face = "italic"), 
+        plot.caption = element_text(size = 12), 
+        text = element_text(family = "Georgia", size = 18, face = "bold"))+
+   guides(fill = guide_legend(reverse=TRUE))+
+  labs(title = "What areas in Agriculture do you recommend\nthe Administration to focus on in the next 2 years?", 
+       subtitle = "Mid-Term Survey for Agricultural Sector", 
+       x = "Challenges", y ="Proportion of Respondents" , 
+       caption =  "N=896 Respondents")+
+   scale_fill_hue(l=80, c=20)+
+  scale_fill_manual(values=custom_color)
+```
+
+
+```{r}
+#Load the data as a corpus
+text <- Agr_spss$WHAT_AREAS_OF_INDUSTRY_REGULATION_DO_YOU_THINK_N
+docs <- Corpus(VectorSource(text))
+
+inspect(docs)
+
+# he following lines of code show you how to do this using the tm package.
+
+docs <- docs %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+
+
+docs <- tm_map(docs, content_transformer(tolower))
+docs <- tm_map(docs, removeWords, stopwords("english"))
+
+#STEP 3: Create a document-term-matrix
+#What you want to do as a next step is to have a dataframe containing each word #in your first column and their frequency in the second column.
+#This can be done by creating a document term matrix with the #TermDocumentMatrix function from the tm package.
+dtm <- TermDocumentMatrix(docs) 
+matrix <- as.matrix(dtm) 
+words <- sort(rowSums(matrix),decreasing=TRUE) 
+df <- data.frame(word = names(words),freq=words)
+
+
+set.seed(1234) # for reproducibility 
+wordcloud(words = df$word, freq = df$freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
+
+```{r}
+wordcloud2(data = df, size=1.6, color='random-dark')
+```
+
 
 
