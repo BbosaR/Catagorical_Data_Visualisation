@@ -1,6 +1,8 @@
 ---
 title: "Agriculture_Endusers"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -194,7 +196,16 @@ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ggplot(Agr_spss, aes(y =LGA1)) +
 geom_bar(aes(fill = STATUS),
 position = "fill")+
-theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+theme(
+  axis.text.x = element_text(angle = 90,
+                             vjust = 0.5, 
+                             hjust = 1, 
+                             face = "bold",
+                             size = 12),
+  text = element_text(size = 14, 
+                      face = "bold"))+
+  labs(x = "Proportion of Respondents",
+       y ="Local Government") +
   scale_x_continuous(labels=scales::percent)
 ```
 
@@ -210,15 +221,28 @@ ggplot(df, aes(
   y = reorder_within(STATUS, counts, SEX),
   x = counts, fill= SEX)) +
   geom_bar(stat = "identity") +
-theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
-  geom_text(aes(label=counts), 
-            vjust = 0.5, hjust = 0.4)+
+theme(
+  axis.text.x = element_text(angle = 90,
+                             vjust = 0.5, 
+                             hjust = 1, 
+                             face = "bold",
+                             size = 12),
+  text = element_text(size = 15, 
+                      face = "bold"),
+  plot.caption = element_text(
+    size = 11))+
+  geom_text(aes(
+    label=counts), 
+    vjust = 0.5, 
+    hjust = 0.4,
+    fontface= "bold")+
   facet_grid(SEX ~ AGE_GROUP , scales = "free",
              labeller = label_value)+
              scale_y_reordered()+
- ylab("STATUS") +
-  xlab("Number of Respondents")+
-  labs(fill = "GENDER")
+  labs(fill = "GENDER",
+       x = "Number of Respondents",
+       y ="STATUS",
+       caption =  "N=896 Respondents")
 ```
 
 
@@ -271,11 +295,11 @@ ggplot(Agr_spsstt, aes(x =  Agr_spsstt$interventions,
 ```{r}
 
 Agr_spssh <- Agr_spsst %>% 
-  filter(interventions %in% c( "N106,850,000 Agriculture Credit Facilities\nto 658 peasant farmers")) %>% 
   group_by(interventions,opinion)%>% 
   mutate(counts =n(),
     pct = (counts)/sum(counts),
-         label_ypos=cumsum(pct))
+         label_ypos=cumsum(pct))%>% 
+  filter(interventions %in% c( "N106,850,000 Agriculture Credit Facilities\nto 658 peasant farmers")) 
 
 
 levels(Agr_spssh$opinion)
@@ -305,15 +329,15 @@ ggplot(Agr_spssh, aes(x =  Agr_spssh$interventions,
 
 
 ```{r}
-Agr_spssw <- Agr_spsst %>% 
-  filter(interventions %in% c( 
-    "Accelerated Agricultural Development Scheme",                      
-    "N350 million counterpart fund–RAAMP",
-    "Establishment of OYSADA")) %>% 
+Agr_spssw <- Agr_spsst  %>% 
   group_by(interventions,opinion)%>% 
   mutate(counts =n(),
     pct = (counts)/sum(counts),
-         label_ypos=cumsum(pct))
+         label_ypos=cumsum(pct))%>% 
+  filter(interventions %in% 
+           c("Accelerated Agricultural Development Scheme",
+             "N350 million counterpart fund–RAAMP",
+             "Establishment of OYSADA"))
 
 
 levels(Agr_spssh$opinion)
@@ -391,15 +415,6 @@ ggplot(Agr_spssat, aes(x =  Agr_spssat$Inputs,
 Agr_spssa$Zone
 
 Agr_spsswf <- Agr_spssa %>% 
-  filter(Inputs %in% 
-           c( "Fertilizer",
-              "Seeds/stems",
-              "Pesticide",
-              "Farm Extension services",
-              "Mechanized Equipment", 
-              "Agric Credit",
-              "Road and rail infrastructure" ,
-              "Land clearing")) %>% 
   group_by(Inputs,opinion) %>% 
   mutate(counts =n(),
     pct = (counts)/sum(counts),
@@ -408,7 +423,16 @@ Agr_spsswf <- Agr_spssa %>%
            c("Oke Ogun 1",
              "Ibadan Main City",
              "Oke Ogun 2",
-             "Oyo"))
+             "Oyo"),
+         Inputs %in% 
+           c("Fertilizer",
+              "Seeds/stems",
+              "Pesticide",
+              "Farm Extension services",
+              "Mechanized Equipment", 
+              "Agric Credit",
+              "Road and rail infrastructure" ,
+              "Land clearing"))
 
 
 ggplot(Agr_spsswf, aes(x =  Agr_spsswf$Inputs,
@@ -439,11 +463,11 @@ ggplot(Agr_spsswf, aes(x =  Agr_spsswf$Inputs,
 Agr_spssa$Inputs
 
 Agr_spsswfo <- Agr_spssa %>% 
-  filter(Inputs %in% c( "Access to markets")) %>% 
   group_by(Inputs,opinion) %>% 
   mutate(counts =n(),
     pct = (counts)/sum(counts),
-         label_ypos=cumsum(pct))
+         label_ypos=cumsum(pct))%>% 
+  filter(Inputs %in% c( "Access to markets")) 
 
 ggplot(Agr_spsswfo, aes(x =  Agr_spsswfo$Inputs,
                        y = Agr_spsswfo$pct, fill = opinion)) +
@@ -480,7 +504,7 @@ Agr_spssa <- Agr_spssa %>%
 mosaicplot( ~ Inputs + opinion  , data = Agr_spssa,
            col=brewer.pal(n=2, name = "Set2"),
            las=2,
-           main="Are you aware of the existence of \nOyo State Health Insurance Agency?",
+           main="Which of the following agricultural inputs/services\n are accessible to you under the current administration?",
            xlab="", 
            ylab="Response",
            cex.axis=1,)
